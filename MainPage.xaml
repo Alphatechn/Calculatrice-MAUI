@@ -1,36 +1,179 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="Calculatrice.MainPage">
+             x:Class="Calculatrice.MainPage"
+             Shell.NavBarIsVisible="False"
+             BackgroundColor="#101418">
 
-    <ScrollView>
-        <VerticalStackLayout
-            Padding="30,0"
-            Spacing="25">
-            <Image
-                Source="dotnet_bot.png"
-                HeightRequest="185"
-                Aspect="AspectFit"
-                SemanticProperties.Description="dot net bot in a race car number eight" />
+    <ContentPage.Resources>
+        <!-- Style commun à toutes les touches du clavier -->
+        <Style x:Key="ToucheBase" TargetType="Button">
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="FontSize" Value="26" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="TextColor" Value="White" />
+            <Setter Property="MinimumHeightRequest" Value="0" />
+            <Setter Property="MinimumWidthRequest" Value="0" />
+        </Style>
+        <Style x:Key="ToucheChiffre" TargetType="Button" BasedOn="{StaticResource ToucheBase}">
+            <Setter Property="BackgroundColor" Value="#2A3038" />
+        </Style>
+        <Style x:Key="ToucheOperateur" TargetType="Button" BasedOn="{StaticResource ToucheBase}">
+            <Setter Property="BackgroundColor" Value="#FF9F0A" />
+        </Style>
+        <Style x:Key="ToucheFonction" TargetType="Button" BasedOn="{StaticResource ToucheBase}">
+            <Setter Property="BackgroundColor" Value="#4A525C" />
+        </Style>
+        <Style x:Key="ToucheEgal" TargetType="Button" BasedOn="{StaticResource ToucheBase}">
+            <Setter Property="BackgroundColor" Value="#34C759" />
+        </Style>
+        <Style x:Key="ToucheScientifique" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="#1E242B" />
+            <Setter Property="TextColor" Value="#FF9F0A" />
+            <Setter Property="FontSize" Value="16" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="WidthRequest" Value="72" />
+            <Setter Property="HeightRequest" Value="40" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="4" />
+        </Style>
+        <Style x:Key="BoutonLien" TargetType="Button">
+            <Setter Property="BackgroundColor" Value="Transparent" />
+            <Setter Property="TextColor" Value="#9AA4AF" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="HeightRequest" Value="32" />
+        </Style>
+    </ContentPage.Resources>
 
-            <Label
-                Text="Hello, World!"
-                Style="{StaticResource Headline}"
-                SemanticProperties.HeadingLevel="Level1" />
+    <!-- LAYOUT 1 : Grid racine, réorganisé en portrait/paysage dans le code-behind -->
+    <Grid x:Name="RootGrid"
+          Padding="12"
+          RowSpacing="12"
+          ColumnSpacing="12"
+          RowDefinitions="*,2*">
 
-            <Label
-                Text="Welcome to &#10;.NET Multi-platform App UI"
-                Style="{StaticResource SubHeadline}"
-                SemanticProperties.HeadingLevel="Level2"
-                SemanticProperties.Description="Welcome to dot net Multi platform App U I" />
+        <!-- LAYOUT 2 : ScrollView, la zone d'affichage défile si l'écran est trop petit -->
+        <ScrollView x:Name="ZoneScroll" Grid.Row="0" VerticalOptions="End">
 
-            <Button
-                x:Name="CounterBtn"
-                Text="Click me" 
-                SemanticProperties.Hint="Counts the number of times you click"
-                Clicked="OnCounterClicked"
-                HorizontalOptions="Fill" />
-        </VerticalStackLayout>
-    </ScrollView>
+            <!-- LAYOUT 3 : VerticalStackLayout, empile en-tête, historique, écran et fonctions -->
+            <VerticalStackLayout Spacing="10">
 
+                <!-- LAYOUT 4 : HorizontalStackLayout, barre d'en-tête -->
+                <HorizontalStackLayout Spacing="4">
+                    <Label Text="Calculatrice"
+                           TextColor="White"
+                           FontSize="18"
+                           FontAttributes="Bold"
+                           VerticalOptions="Center"
+                           Margin="4,0,8,0" />
+                    <Button x:Name="HistoriqueButton"
+                            Text="🕘 Historique"
+                            Style="{StaticResource BoutonLien}"
+                            Clicked="OnHistoriqueClicked" />
+                    <Button Text="Vider"
+                            Style="{StaticResource BoutonLien}"
+                            Clicked="OnViderHistoriqueClicked" />
+                </HorizontalStackLayout>
+
+                <!-- LAYOUT 5 : Border, panneau d'historique masqué par défaut -->
+                <Border x:Name="HistoriqueBorder"
+                        IsVisible="False"
+                        HeightRequest="110"
+                        Padding="12,8"
+                        BackgroundColor="#161B21"
+                        Stroke="#2A3038"
+                        StrokeShape="RoundRectangle 14">
+                    <ScrollView>
+                        <VerticalStackLayout x:Name="HistoriqueStack" Spacing="4" />
+                    </ScrollView>
+                </Border>
+
+                <!-- Écran de la calculatrice -->
+                <Border x:Name="EcranBorder"
+                        Padding="16,12"
+                        BackgroundColor="#1A1F25"
+                        Stroke="#2A3038"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 20">
+                    <VerticalStackLayout Spacing="4">
+
+                        <!-- Opération en cours, défile horizontalement si elle est longue -->
+                        <ScrollView x:Name="ExpressionScroll"
+                                    Orientation="Horizontal"
+                                    HorizontalScrollBarVisibility="Never"
+                                    HorizontalOptions="End"
+                                    HeightRequest="28">
+                            <Label x:Name="ExpressionLabel"
+                                   Text=" "
+                                   TextColor="#9AA4AF"
+                                   FontSize="20"
+                                   LineBreakMode="NoWrap" />
+                        </ScrollView>
+
+                        <!-- Résultat, dont la taille de police s'adapte à la longueur -->
+                        <Label x:Name="ResultatLabel"
+                               Text="0"
+                               TextColor="White"
+                               FontSize="56"
+                               FontAttributes="Bold"
+                               HorizontalTextAlignment="End"
+                               LineBreakMode="NoWrap"
+                               MaxLines="1" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- LAYOUT 6 : FlexLayout, fonctions avancées avec retour à la ligne automatique -->
+                <FlexLayout Direction="Row"
+                            Wrap="Wrap"
+                            JustifyContent="SpaceEvenly"
+                            AlignItems="Center">
+                    <Button Text="√"   Style="{StaticResource ToucheScientifique}" Clicked="OnFonctionClicked" />
+                    <Button Text="x²"  Style="{StaticResource ToucheScientifique}" Clicked="OnFonctionClicked" />
+                    <Button Text="1/x" Style="{StaticResource ToucheScientifique}" Clicked="OnFonctionClicked" />
+                </FlexLayout>
+
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Clavier : Grid 5 lignes × 4 colonnes, tailles en étoile donc sans débordement -->
+        <Grid x:Name="Clavier"
+              Grid.Row="1"
+              RowSpacing="10"
+              ColumnSpacing="10"
+              RowDefinitions="*,*,*,*,*"
+              ColumnDefinitions="*,*,*,*">
+
+            <!-- Ligne 0 -->
+            <Button Text="C" Grid.Row="0" Grid.Column="0" Style="{StaticResource ToucheFonction}" TextColor="#FF453A" Clicked="OnEffacerToutClicked" />
+            <Button Text="⌫" Grid.Row="0" Grid.Column="1" Style="{StaticResource ToucheFonction}" Clicked="OnEffacerDernierClicked" />
+            <Button Text="%" Grid.Row="0" Grid.Column="2" Style="{StaticResource ToucheFonction}" Clicked="OnPourcentageClicked" />
+            <Button Text="÷" Grid.Row="0" Grid.Column="3" Style="{StaticResource ToucheOperateur}" Clicked="OnOperateurClicked" />
+
+            <!-- Ligne 1 -->
+            <Button Text="7" Grid.Row="1" Grid.Column="0" Style="{StaticResource ToucheChiffre}" Clicked="OnChiffreClicked" />
+            <Button Text="8" Grid.Row="1" Grid.Column="1" Style="{StaticResource ToucheChiffre}" Clicked="OnChiffreClicked" />
+            <Button Text="9" Grid.Row="1" Grid.Column="2" Style="{StaticResource ToucheChiffre}" Clicked="OnChiffreClicked" />
+            <Button Text="×" Grid.Row="1" Grid.Column="3" Style="{StaticResource ToucheOperateur}" Clicked="OnOperateurClicked" />
+
+            <!-- Ligne 2 -->
+            <Button Text="4" Grid.Row="2" Grid.Column="0" Style="{StaticResource ToucheChiffre}" Clicked="OnChiffreClicked" />
+            <Button Text="5" Grid.Row="2" Grid.Column="1" Style="{StaticResource ToucheChiffre}" Clicked="OnChiffreClicked" />
+            <Button Text="6" Grid.Row="2" Grid.Column="2" Style="{StaticResource ToucheChiffre}" Clicked="OnChiffreClicked" />
+            <Button Text="−" Grid.Row="2" Grid.Column="3" Style="{StaticResource ToucheOperateur}" Clicked="OnOperateurClicked" />
+
+            <!-- Ligne 3 -->
+            <Button Text="1" Grid.Row="3" Grid.Column="0" Style="{StaticResource ToucheChiffre}" Clicked="OnChiffreClicked" />
+            <Button Text="2" Grid.Row="3" Grid.Column="1" Style="{StaticResource ToucheChiffre}" Clicked="OnChiffreClicked" />
+            <Button Text="3" Grid.Row="3" Grid.Column="2" Style="{StaticResource ToucheChiffre}" Clicked="OnChiffreClicked" />
+            <Button Text="+" Grid.Row="3" Grid.Column="3" Style="{StaticResource ToucheOperateur}" Clicked="OnOperateurClicked" />
+
+            <!-- Ligne 4 -->
+            <Button Text="±" Grid.Row="4" Grid.Column="0" Style="{StaticResource ToucheFonction}" Clicked="OnSigneClicked" />
+            <Button Text="0" Grid.Row="4" Grid.Column="1" Style="{StaticResource ToucheChiffre}" Clicked="OnChiffreClicked" />
+            <Button Text="," Grid.Row="4" Grid.Column="2" Style="{StaticResource ToucheChiffre}" Clicked="OnVirguleClicked" />
+            <Button Text="=" Grid.Row="4" Grid.Column="3" Style="{StaticResource ToucheEgal}" Clicked="OnEgalClicked" />
+        </Grid>
+
+    </Grid>
 </ContentPage>
